@@ -1,0 +1,58 @@
+body {
+  display: flex;
+  background-color: aqua;
+  justify-content: center;
+  align-items: center;
+}
+
+.mainContainer {
+  width: 50vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+input {
+  width: 25vw;
+  height: 5vh;
+}
+
+#title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 50vw;
+  height: 100vh;
+  background-color: bisque;
+  /* background-image: url("desktop-wallpaper-backgrounds-for-login-page-login-page.jpg"); */
+  text-align: center;
+}
+
+#heading {
+  font-size: 3vw;
+  font-weight: bolder;
+}
+
+#formTitle {
+  text-align: center;
+}
+
+#registerForm {
+  display: flex;
+  flex-direction: column;
+  row-gap: 01vh;
+}
+
+button {
+  height: 5vh;
+  width: 12.5vw;
+  align-self: center;
+  background-color: #0e2954;
+  color: wheat;
+}
+
+button:hover {
+  background-color: #1b4994;
+}
