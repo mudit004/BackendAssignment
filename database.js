@@ -4,6 +4,6 @@ module.exports = mysql.createConnection({
   host: process.env.MYSQL_HOST || "0.0.0.0",
   user: process.env.MYSQL_USER || "root",
   password: process.env.PASSWORD,
-  database: process.env.Database,
+  database: "Library",
   port: process.env.MYSQL_PORT || 3306,
 });

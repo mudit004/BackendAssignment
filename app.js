@@ -5,6 +5,7 @@ const app = express();
 const bcrypt = require("bcrypt");
 const bodyParser = require("body-parser");
 const db = require("./database.js");
+const jwt = require("jsonwebtoken");
 const { error } = require("console");
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -65,17 +66,17 @@ app.post("/login", (req, res) => {
     } else {
       let hash = bcrypt.hashSync(pwd, results[0].salt);
       if (hash === results[0].hash) {
+        let userID = results[0].userID;
+        let isAdmin = results[0].admin;
         console.log(`${usrname} logged in`);
-        let sessionID = crypto.randomUUID();
-        res.cookie("sessionID", sessionID, {
-          maxAge: 1200000,
-          httpOnly: true,
+        //JWT Authentication
+        const creds = { userID: userID, userName: usrname, admin: isAdmin };
+        const token = jwt.sign(creds, process.env.Acess_Token_Key, {
+          expiresIn: "15m",
         });
-        db.query(
-          `Insert Into cookies (userID, sessionID) values (${db.escape(
-            results[0].userID
-          )}, ${db.escape(sessionID)});`
-        );
+        res.json({ token });
+
+        //END of JWT
         if (results[0].admin === 1) {
           res.redirect("/dashboard");
         } else {
@@ -128,43 +129,24 @@ app.post("/register", async (req, res) => {
   );
 });
 function validation(req, res, next) {
-  req.adminAuth = 0;
-  var cookie;
-  try {
-    cookie = req.headers.cookie.slice(10);
-  } catch (err) {
-    res.render("loginPage");
-    return;
-  }
-  if (req.headers.cookie.includes("sessionID")) {
-    let sql = `Select cookies.userID, cookies.sessionID, user.admin FROM cookies, user where sessionID=${db.escape(
-      cookie
-    )} and user.userID=cookies.userID;`;
-    db.query(sql, (err, result, field) => {
-      if (err) {
-        res.render("loginPage");
-      } else {
-        if (result[0].admin === 1) {
-          req.adminAuth = 1;
-        } else {
-          req.adminAuth = 0;
-        }
-      }
+  // JWT Middleware
 
-      if (cookie === result[0].sessionID) {
-        req.userID = result[0].userID;
-        next();
-      } else {
-        console.log("cookie: ", cookie);
-        console.log("sessionID: ", result[0]);
-        res.status(403).send({ msg: "Not Authenticated" });
-      }
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (token == null) {
+    res.render("loginPage");
+  } else {
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+      console.log(err);
+      if (err) return res.render("loginPage");
+      req.user = user;
+      next();
     });
   }
 }
 //function to verify it's admin for admin specific routes
 function isAdmin(req, res, next) {
-  if (req.adminAuth === 1) {
+  if (req.creds.admin === 1) {
     next();
   } else {
     res.status(403).send({ msg: "Not Authenticated" });
@@ -199,7 +181,7 @@ app.get("/browse", validation, (req, res) => {
 });
 app.post("/user_side/checkin", validation, (req, res) => {
   let checkInReq = req.body.checkInID;
-  let user = req.userID;
+  let user = res.user.userID;
   console.log("identified user is" + user);
   console.log(user);
   let checker = `select * from request where bookID=${db.escape(
@@ -244,7 +226,7 @@ app.post("/user_side/checkin", validation, (req, res) => {
 
 app.post("/user_side/checkout", validation, (req, res) => {
   var checkOutReq = req.body.checkInID;
-  var user = req.userID;
+  var user = req.user.userID;
   console.log(user);
   let q1 = `Update request Set status = 2 where UID = ${db.escape(
     user
