@@ -71,10 +71,10 @@ app.post("/login", (req, res) => {
         console.log(`${usrname} logged in`);
         //JWT Authentication
         const creds = { userID: userID, userName: usrname, admin: isAdmin };
-        const token = jwt.sign(creds, process.env.Acess_Token_Key, {
-          expiresIn: "15m",
+        const token = jwt.sign(creds, process.env.ACCESS_TOKEN_SECRET);
+        res.cookie("token", token, {
+          maxAge: 360000,
         });
-        res.json({ token });
 
         //END of JWT
         if (results[0].admin === 1) {
@@ -130,13 +130,13 @@ app.post("/register", async (req, res) => {
 });
 function validation(req, res, next) {
   // JWT Middleware
+  // console.log(req.headers.cookie.slice(6));
+  const accessToken = req.headers.cookie.slice(6);
 
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-  if (token == null) {
+  if (accessToken == null) {
     res.render("loginPage");
   } else {
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
       console.log(err);
       if (err) return res.render("loginPage");
       req.user = user;
@@ -146,7 +146,7 @@ function validation(req, res, next) {
 }
 //function to verify it's admin for admin specific routes
 function isAdmin(req, res, next) {
-  if (req.creds.admin === 1) {
+  if (req.user.admin === 1) {
     next();
   } else {
     res.status(403).send({ msg: "Not Authenticated" });
